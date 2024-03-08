@@ -1,0 +1,29 @@
+@article{Fossil_ensemble,
+author = {Hou, Chengbin and Lin, Xinyu and Huang, Hanhui and Xu, Sheng and Fan, Junxuan and Shi, Yukun and Lv, Hairong},
+title = {Fossil image identification using deep learning ensembles of data augmented multiviews},
+journal = {Methods in Ecology and Evolution},
+volume = {14},
+number = {12},
+pages = {3020-3034},
+keywords = {deep learning, ensemble, fossil identification, fusulinid, identification inconsistency, image classification, palaeoecology},
+doi = {https://doi.org/10.1111/2041-210X.14229},
+url = {https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.14229},
+eprint = {https://besjournals.onlinelibrary.wiley.com/doi/pdf/10.1111/2041-210X.14229},
+abstract = {Abstract Identification of fossil species is crucial to evolutionary studies. Recent advances from deep learning have shown promising prospects in fossil image identification. However, the quantity and quality of labelled fossil images are often limited due to fossil preservation, conditioned sampling and expensive and inconsistent label annotation by domain experts, which pose great challenges to training deep learning-based image classification models. To address these challenges, we follow the idea of the wisdom of crowds and propose a multiview ensemble framework, which collects Original (O), Grey (G) and Skeleton (S) views of each fossil image reflecting its different characteristics to train multiple base models, and then makes the final decision via soft voting. Experiments on the largest fusulinid dataset with 2400 images show that the proposed OGS consistently outperforms baselines (using a single model for each view), and obtains superior or comparable performance compared to OOO (using three base models for three the same Original views). Besides, as the training data decreases, the proposed framework achieves more gains. While considering the identification consistency estimation with respect to human experts, OGS receives the highest agreement with the original labels of dataset and with the re-identifications of two human experts. The validation performance provides a quantitative estimation of consistency across different experts and genera. We conclude that the proposed framework can present state-of-the-art performance in the fusulinid fossil identification case study. This framework is designed for general fossil identification and it is expected to see applications to other fossil datasets in future work. Notably, the result, which shows more performance gains as train set size decreases or over a smaller imbalance fossil dataset, suggests the potential application to identify rare fossil images. The proposed framework also demonstrates its potential for assessing and resolving inconsistencies in fossil identification.},
+year = {2023}
+}
+
+@article{Fusulinid_dataset,
+author = {Huang, Hanhui and Shi, Yukun and Chen, Qin and Xu, Huiqing and Song, Sicong and Shi, Yujie and Shen, Furao and Fan, Junxuan},
+title = {An image dataset of fusulinid foraminifera generated with the aid of deep learning},
+journal = {Geoscience Data Journal},
+volume = {11},
+number = {1},
+pages = {46-56},
+keywords = {auto-segmentation, BlendMask, fusulinids, image dataset},
+doi = {https://doi.org/10.1002/gdj3.215},
+url = {https://rmets.onlinelibrary.wiley.com/doi/abs/10.1002/gdj3.215},
+eprint = {https://rmets.onlinelibrary.wiley.com/doi/pdf/10.1002/gdj3.215},
+abstract = {Abstract Fusulinid foraminifera are among the most common microfossils of the Late Palaeozoic and act as key fossils for stratigraphic correlation, paleogeographic and paleoenvironmental indication, and evolutionary studies of marine life. Accurate and efficient identification forms the basis of such research involving fusulinids but is limited by the lack of digitized image datasets. This article presents the first large image dataset of fusulinids containing 2,400 images of individual samples subjected to 16 genera of all six fusulinid families and labelled to species level. These images were collected from the literature and our unpublished samples through an automatic segmentation procedure implementing BlendMask, a deep learning model. The dataset shows promise for the efficient accumulation of fossil images through automated procedures and will facilitate taxonomists in future morphologic and systematic studies.},
+year = {2024}
+}
