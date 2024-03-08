@@ -25,7 +25,7 @@ organizations:
     url: https://www.ox.ac.uk/
 
 # Short bio (displayed in user profile at end of posts)
-bio: My research interests include distributed robotics, mobile computing and programmable matter.
+bio: I am interested in how, and why, biodiversity changes through time.
 
 # Interests to show in About widget
 interests:
@@ -95,24 +95,24 @@ social:
   - icon: twitter
     icon_pack: fab
     link: https://twitter.com/GeorgeCushen
-    label: Follow me on Twitter
-    display:
-      header: true
+    # label: Follow me on Twitter
+    # display:
+    #   header: true
   - icon: graduation-cap # Alternatively, use `google-scholar` icon from `ai` icon pack
     icon_pack: fas
     link: https://scholar.google.co.uk/citations?user=c14-SSUAAAAJ
   - icon: github
     icon_pack: fab
-    link: https://github.com/gcushen
+    link: https://github.com/Yo-Kei
   - icon: linkedin
     icon_pack: fab
-    link: https://www.linkedin.com/
+    link: https://www.linkedin.com/in/hanhui-huang-1a324829b/
   # Link to a PDF of your resume/CV.
   # To use: copy your resume to `static/uploads/resume.pdf`, enable `ai` icons in `params.yaml`,
   # and uncomment the lines below.
   - icon: cv
     icon_pack: ai
-    link: uploads/resume.pdf
+    link: uploads/CV_24-03-06.pdf
 
 # Highlight the author in author lists? (true/false)
 highlight_name: true
