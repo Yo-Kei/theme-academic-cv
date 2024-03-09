@@ -23,7 +23,6 @@ url_video: ''
 #   Simply enter your slide deck's filename without extension.
 #   E.g. `slides = "example-slides"` references `content/slides/example-slides.md`.
 #   Otherwise, set `slides = ""`.
-slides: ''
 ---
 
 Produced the first large image dataset of fusulinids (2400 images) with the aid of deep learning image segmentation technique (BlendMask)

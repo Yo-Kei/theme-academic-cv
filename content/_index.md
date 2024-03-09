@@ -171,12 +171,12 @@ sections:
       buttons:
         - name: All
           tag: '*'
-        # - name: Biodiversity in Deep Time
-        #   tag: Biodiversity in Deep Time
-        # - name: Machine Learning on Fossils
-        #   tag: Machine Learning on Fossils
-        # - name: Other
-        #   tag: Demo
+        - name: Biodiversity in Deep Time
+          tag: Biodiversity in Deep Time
+        - name: Machine Learning on Fossils
+          tag: Machine Learning on Fossils
+        - name: Other
+          tag: Demo
     design:
       # Choose how many columns the section has. Valid values: '1' or '2'.
       columns: '1'

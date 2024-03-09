@@ -23,7 +23,6 @@ url_video: ''
 #   Simply enter your slide deck's filename without extension.
 #   E.g. `slides = "example-slides"` references `content/slides/example-slides.md`.
 #   Otherwise, set `slides = ""`.
-slides: ''
 ---
 
 Developed an algorithm for stratigraphic correlation of local geological records (HORSE) to correlate fossil records from different localities
