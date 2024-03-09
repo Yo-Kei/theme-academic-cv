@@ -2,7 +2,7 @@
 title: Biodiversity in Time and Space
 summary: Looking into the change of biodiversity in deep time, and undestanding the drivers behind them.
 tags:
-  - Biodiversity
+  - Biodiversity in Deep Time
 date: '2016-04-27T00:00:00Z'
 
 # Optional external URL for project (replaces project detail page).

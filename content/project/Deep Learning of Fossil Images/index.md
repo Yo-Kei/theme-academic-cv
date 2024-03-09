@@ -2,8 +2,7 @@
 title: Deep Learning of Fossil Images
 summary: Using deep learning models to accurately and efficiently identify/classify fossil organisms.
 tags:
-  - Deep Learning
-  - Fossil Image
+  - Machine Learning on Fossils
 date: '2022-10-01T00:00:00Z'
 
 # Optional external URL for project (replaces project detail page).
