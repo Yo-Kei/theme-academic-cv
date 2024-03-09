@@ -1,9 +1,9 @@
 ---
 # Display name
-title: Hanhui Huang
+title: 黄汉晖
 
 # Name pronunciation (optional)
-name_pronunciation: 黄汉晖
+name_pronunciation: Hanhui Huang
 
 # Full name (for SEO)
 first_name: Hanhui

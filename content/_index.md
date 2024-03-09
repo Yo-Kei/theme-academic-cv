@@ -10,7 +10,7 @@ sections:
     content:
       title: Hugo Academic Theme
       image:
-        filename: icon.jpg
+        filename: icon.png
       cta:
         label: '**Get Started**'
         url: https://hugoblox.com/templates/
@@ -257,11 +257,11 @@ sections:
       coordinates:
         latitude: '51.7586'
         longitude: '-1.2544'  
-      # contact_links:
-      #   - icon: twitter
-      #     icon_pack: fab
-      #     name: DM Me
-      #     link: 'https://twitter.com/Twitter'
+      contact_links:
+        - icon: twitter
+          icon_pack: fab
+          name: DM Me
+          link: 'https://twitter.com/HanhuiH'
       #   - icon: skype
       #     icon_pack: fab
       #     name: Skype Me
