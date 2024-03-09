@@ -10,7 +10,7 @@ sections:
     content:
       title: Hugo Academic Theme
       image:
-        filename: icon.jpeg
+        filename: icon.jpg
       cta:
         label: '**Get Started**'
         url: https://hugoblox.com/templates/
@@ -41,7 +41,7 @@ sections:
     content:
       title: Biography
       # Choose a user profile to display (a folder name within `content/authors/`)
-      username: admin
+      username: Hanhui Huang
   # - block: skills
   #   content:
   #     title: Skills
