@@ -19,7 +19,7 @@ publication_types:
 - article-journal
 publication: '*Methods in Ecology and Evolution*'
 doi: https://doi.org/10.1111/2041-210X.14229
-abstract: Abstract Identification of fossil species is crucial to evolutionary studies.
+abstract: Identification of fossil species is crucial to evolutionary studies.
   Recent advances from deep learning have shown promising prospects in fossil image
   identification. However, the quantity and quality of labelled fossil images are
   often limited due to fossil preservation, conditioned sampling and expensive and

@@ -15,7 +15,7 @@ publication_types:
 - article-journal
 publication: '*Geoscience Data Journal*'
 doi: https://doi.org/10.1002/gdj3.215
-abstract: Abstract Fusulinid foraminifera are among the most common microfossils of
+abstract: Fusulinid foraminifera are among the most common microfossils of
   the Late Palaeozoic and act as key fossils for stratigraphic correlation, paleogeographic
   and paleoenvironmental indication, and evolutionary studies of marine life. Accurate
   and efficient identification forms the basis of such research involving fusulinids

@@ -240,8 +240,7 @@ sections:
         Enter your message in here if you want to contact me!
       # Contact (add or remove contact options as necessary)
       email: hanhuihuang@outlook.com
-      phone (UK): +44 07900409486
-      phone (China): +86 18928846622
+      phone: +44 07900409486
       # appointment_url: 'https://calendly.com'
       address:
         street: South Parks Road
