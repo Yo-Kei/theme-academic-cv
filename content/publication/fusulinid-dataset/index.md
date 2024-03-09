@@ -33,6 +33,6 @@ tags:
 - fusulinids
 - image dataset
 links:
-- name: URL
-  url: https://rmets.onlinelibrary.wiley.com/doi/abs/10.1002/gdj3.215
+- name: Dataset
+  url: https://doi.org/10.12297/dpr.dde.202211.5
 ---

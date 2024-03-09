@@ -9,6 +9,10 @@ authors:
 - Junxuan Fan
 - Yukun Shi
 - Hairong Lv
+author_notes:
+- "Equal contribution"
+- "Equal contribution"
+- "Equal contribution"
 date: '2023-01-01'
 publishDate: '2024-03-08T23:17:21.662318Z'
 publication_types:
@@ -48,7 +52,4 @@ tags:
 - identification inconsistency
 - image classification
 - palaeoecology
-links:
-- name: URL
-  url: https://besjournals.onlinelibrary.wiley.com/doi/abs/10.1111/2041-210X.14229
 ---
