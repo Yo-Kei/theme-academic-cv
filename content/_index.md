@@ -10,7 +10,7 @@ sections:
     content:
       title: Hugo Academic Theme
       image:
-        filename: hero-academic.png
+        filename: icon.jpeg
       cta:
         label: '**Get Started**'
         url: https://hugoblox.com/templates/
@@ -172,9 +172,9 @@ sections:
         - name: All
           tag: '*'
         - name: Biodiversity in Deep Time
-          tag: Biodiversity in Deep Time
+          tag: Biodiversity
         - name: Machine Learning on Fossils
-          tag: Machine Learning on Fossils
+          tag: Machine Learning
         - name: Other
           tag: Demo
     design:
@@ -240,8 +240,9 @@ sections:
         Enter your message in here if you want to contact me!
       # Contact (add or remove contact options as necessary)
       email: hanhuihuang@outlook.com
-      phone: +44 (0)7900409486 (UK) | +86 18928846622 (China)
-      appointment_url: 'https://calendly.com'
+      phone (UK): +44 07900409486
+      phone (China): +86 18928846622
+      # appointment_url: 'https://calendly.com'
       address:
         street: South Parks Road
         city: Oxford

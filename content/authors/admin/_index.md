@@ -3,7 +3,7 @@
 title: Hanhui Huang
 
 # Name pronunciation (optional)
-name_pronunciation: 黄 汉 晖
+name_pronunciation: 黄汉晖
 
 # Full name (for SEO)
 first_name: Hanhui
