@@ -36,7 +36,7 @@ jobs:
         with:
           hugo-version: ${{ env.WC_HUGO_VERSION }}
           extended: true
-      - uses: actions/cache@v3
+      - uses: actions/cache@v4
         with:
           path: /tmp/hugo_cache_runner/
           key: ${{ runner.os }}-hugomod-${{ hashFiles('**/go.mod') }}
@@ -45,6 +45,9 @@ jobs:
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v5
+        with:
+          # Enable Pages if not already enabled
+          enablement: true
       - name: Build with Hugo
         env:
           HUGO_ENVIRONMENT: production
