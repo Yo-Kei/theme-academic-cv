@@ -13,6 +13,9 @@ main:
   - name: Projects
     url: '#projects'
     weight: 30
+  - name: Game Demo
+    url: '/CoS/'
+    weight: 35
   - name: Publications
     url: '#featured'
     weight: 50

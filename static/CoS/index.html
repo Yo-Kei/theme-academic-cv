@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生存演化卡牌游戏 (Clash of Species)</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 游戏设置面板 -->
+        <div id="game-settings-panel">
+            <h1>生存演化卡牌游戏</h1>
+            <h2>Clash of Species</h2>
+            <div class="setting-group">
+                <label for="max-species-select">最大物种数量:</label>
+                <select id="max-species-select">
+                    <option value="3" selected>3个物种</option>
+                    <option value="4">4个物种</option>
+                    <option value="5">5个物种</option>
+                    <option value="6">6个物种</option>
+                    <option value="7">7个物种</option>
+                </select>
+            </div>
+            <button id="start-game" class="btn">开始游戏</button>
+        </div>
+
+        <div id="game-board" class="hidden">
+            <!-- AI区域在上方 -->
+            <div id="ai-section" class="player-section">
+                <h2>AI <span id="ai-hand-count">(手牌: 0张)</span></h2>
+                <div id="ai-species-container" class="species-container">
+                    <!-- AI的物种卡将在这里动态生成 -->
+                </div>
+            </div>
+
+            <!-- 中间区域：三列布局 - 日志、控制、环境 -->
+            <div id="middle-section">
+                <!-- 第一列：游戏日志 -->
+                <div id="log-container">
+                    <h3>游戏日志</h3>
+                    <div id="game-log"></div>
+                </div>
+
+                <!-- 第二列：控制信息和按钮 -->
+                <div id="control-section">
+                    <h3>游戏控制</h3>
+                    <div id="game-info">
+                        <div id="round-phase-info">
+                            回合 <span id="round-number">1</span> - <span id="current-phase">抽牌阶段</span>
+                        </div>
+                    </div>
+                    
+                    <div id="control-panel">
+                        <button id="next-phase" class="btn">下一阶段</button>
+                        <button id="new-game" class="btn">新游戏</button>
+                        <button id="duplicate-species" class="btn hidden">复制物种</button>
+                    </div>
+                </div>
+
+                <!-- 第三列：环境信息 -->
+                <div id="environment-section">
+                    <h3>环境</h3>
+                    <div id="environment-display">
+                        <!-- 抽卡和分配阶段显示气候状态和温度变化 -->
+                        <div id="climate-cards" class="climate-display">
+                            <div id="climate-state-card" class="climate-card">
+                                <div class="card-content">
+                                    <p class="card-label">气候状态</p>
+                                    <p class="card-value" id="climate-state-name">-</p>
+                                </div>
+                            </div>
+                            <div id="temperature-change-card" class="climate-card">
+                                <div class="card-content">
+                                    <p class="card-label">温度变化</p>
+                                    <p class="card-value" id="temperature-change-name">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 灭绝、复苏和弃牌阶段显示最终环境状态 -->
+                        <div id="final-environment" class="environment-display hidden">
+                            <div id="environment-type-card" class="climate-card">
+                                <div class="card-content">
+                                    <p class="card-label">环境类型</p>
+                                    <p class="card-value" id="environment-type">-</p>
+                                </div>
+                            </div>
+                            <div id="environment-severity-card" class="climate-card">
+                                <div class="card-content">
+                                    <p class="card-label">严峻程度</p>
+                                    <p class="card-value" id="environment-severity">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 玩家区域分为两个独立部分 -->
+            <div id="player-areas">
+                <!-- 玩家物种区域 -->
+                <div id="player-species-section" class="player-section">
+                    <h2>玩家物种</h2>
+                    <div id="player-species-container" class="species-container">
+                        <!-- 玩家的物种卡将在这里动态生成 -->
+                    </div>
+                </div>
+                
+                <!-- 玩家手牌区域 -->
+                <div id="player-hand-section" class="player-section">
+                    <div class="hand-header">
+                        <h2>玩家手牌</h2>
+                        <div id="action-points" class="action-points-display hidden">
+                            行动点数: <span id="action-points-value">3</span>
+                        </div>
+                    </div>
+                    <div id="player-traits" class="trait-cards">
+                        <!-- 玩家的性状卡将在这里动态生成 -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="species-action-panel" class="hidden">
+            <h3>选择操作</h3>
+            <button id="add-trait" class="action-btn">添加性状</button>
+            <button id="replace-trait" class="action-btn">替换性状</button>
+            <button id="remove-trait" class="action-btn">移除性状</button>
+            <button id="cancel-action" class="action-btn">取消</button>
+        </div>
+        
+        <div id="confirm-trait-panel" class="hidden">
+            <h3>确认操作</h3>
+            <p id="confirm-operation-text">是否确认此操作？</p>
+            <button id="confirm-trait-action" class="action-btn">确认</button>
+            <button id="cancel-trait-action" class="action-btn">取消</button>
+        </div>
+        
+        <div id="duplication-confirm-panel" class="hidden">
+            <h3>确认放弃复制</h3>
+            <p id="duplication-confirm-text">确认信息</p>
+            <button id="confirm-skip-duplication" class="action-btn confirm-btn">确定放弃</button>
+            <button id="cancel-skip-duplication" class="action-btn cancel-btn">继续复制</button>
+        </div>
+    </div>
+
+    <script src="js/traits.js"></script>
+    <script src="js/environments.js"></script>
+    <script src="js/game.js"></script>
+</body>
+</html>
