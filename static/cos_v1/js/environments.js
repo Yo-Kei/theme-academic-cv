@@ -3,43 +3,57 @@
  * This module contains all environment types and related functions
  */
 
-// 气候状态卡牌
-const climateStateDeck = [
-    { id: 1, name: '大冰室期', type: 'climate', coldBonus: 2, hotBonus: 0, description: '在灭绝阶段为寒冷环境提供+2剧烈程度' },
-    { id: 2, name: '冰室期', type: 'climate', coldBonus: 1, hotBonus: 0, description: '在灭绝阶段为寒冷环境提供+1剧烈程度' },
-    { id: 3, name: '缓和期', type: 'climate', coldBonus: 0, hotBonus: 0, description: '在灭绝阶段不提供额外剧烈程度' },
-    { id: 4, name: '温室期', type: 'climate', coldBonus: 0, hotBonus: 1, description: '在灭绝阶段为炎热环境提供+1剧烈程度' },
-    { id: 5, name: '大温室期', type: 'climate', coldBonus: 0, hotBonus: 2, description: '在灭绝阶段为炎热环境提供+2剧烈程度' }
+// Climate state data (language-independent)
+const climateStateData = [
+    { id: 1, nameKey: 'environments.majorIceAge', type: 'climate', coldBonus: 2, hotBonus: 0, descKey: 'environments.majorIceAgeDesc' },
+    { id: 2, nameKey: 'environments.iceAge', type: 'climate', coldBonus: 1, hotBonus: 0, descKey: 'environments.iceAgeDesc' },
+    { id: 3, nameKey: 'environments.moderate', type: 'climate', coldBonus: 0, hotBonus: 0, descKey: 'environments.moderateDesc' },
+    { id: 4, nameKey: 'environments.greenhouse', type: 'climate', coldBonus: 0, hotBonus: 1, descKey: 'environments.greenhouseDesc' },
+    { id: 5, nameKey: 'environments.majorGreenhouse', type: 'climate', coldBonus: 0, hotBonus: 2, descKey: 'environments.majorGreenhouseDesc' }
 ];
 
-// 温度变化卡牌
-const temperatureChangeDeck = [
-    { id: 1, name: '升温', type: 'temperature', change: 'hot', description: '环境趋向炎热' },
-    { id: 2, name: '降温', type: 'temperature', change: 'cold', description: '环境趋向寒冷' }
+// Temperature change data (language-independent)
+const temperatureChangeData = [
+    { id: 1, nameKey: 'environments.warming', type: 'temperature', change: 'hot', descKey: 'environments.warmingDesc' },
+    { id: 2, nameKey: 'environments.cooling', type: 'temperature', change: 'cold', descKey: 'environments.coolingDesc' }
 ];
+
+// Dynamic climate state deck with language support
+const climateStateDeck = climateStateData.map(state => ({
+    ...state,
+    get name() { return getText(state.nameKey); },
+    get description() { return getText(state.descKey); }
+}));
+
+// Dynamic temperature change deck with language support
+const temperatureChangeDeck = temperatureChangeData.map(change => ({
+    ...change,
+    get name() { return getText(change.nameKey); },
+    get description() { return getText(change.descKey); }
+}));
 
 // Environment types available in the game (保持向后兼容)
 const environmentDeck = ['hot', 'cold'];
 
-// Environment display names (for UI)
+// Environment display names (dynamic based on current language)
 const environmentTypeNames = {
-    'hot': '炎热',
-    'cold': '寒冷'
+    get hot() { return getText('environmentTypes.hot'); },
+    get cold() { return getText('environmentTypes.cold'); }
 };
 
-// 气候状态显示名称
+// 气候状态显示名称 (dynamic based on current language)
 const climateStateNames = {
-    '大冰室期': '大冰室期',
-    '冰室期': '冰室期', 
-    '缓和期': '缓和期',
-    '温室期': '温室期',
-    '大温室期': '大温室期'
+    get '大冰室期'() { return getText('climateStates.大冰室期'); },
+    get '冰室期'() { return getText('climateStates.冰室期'); },
+    get '缓和期'() { return getText('climateStates.缓和期'); },
+    get '温室期'() { return getText('climateStates.温室期'); },
+    get '大温室期'() { return getText('climateStates.大温室期'); }
 };
 
-// 温度变化显示名称
+// 温度变化显示名称 (dynamic based on current language)
 const temperatureChangeNames = {
-    'hot': '升温',
-    'cold': '降温'
+    get hot() { return getText('temperatureChanges.hot'); },
+    get cold() { return getText('temperatureChanges.cold'); }
 };
 
 // Helper functions for environment operations

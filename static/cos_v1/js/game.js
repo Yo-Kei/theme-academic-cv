@@ -1,5 +1,8 @@
 // All necessary variables and functions are now available globally from traits.js and environments.js
 
+// 初始化语言系统
+initLanguage();
+
 // 游戏核心数据和状态
 const gameState = {
     round: 1,
@@ -14,7 +17,15 @@ const gameState = {
     selectedTrait: null,
     actionMode: null, // 'add', 'replace', 'remove'
     selectedSlotType: null, // 选择的栏位类型
-    phaseNames: ['抽牌阶段', '性状分配阶段', '灭绝阶段', '复苏阶段', '弃牌阶段'],
+    get phaseNames() { 
+        return [
+            getText('phases.draw'),
+            getText('phases.assign'),
+            getText('phases.extinction'),
+            getText('phases.revival'),
+            getText('phases.discard')
+        ];
+    },
     playerTraitAssigned: false, // 标记玩家是否已完成性状分配
     aiTraitAssigned: false, // 标记AI是否已完成性状分配
     actionPoints: 3, // 玩家每轮性状分配阶段的行动点数
@@ -26,7 +37,9 @@ const gameState = {
     maxSpeciesCount: 3, // 最大物种数量，可由玩家设置
     gameEnded: false, // 标记游戏是否结束
     playerDuplicatedThisRound: false, // 标记玩家本轮是否已完成复制
-    selectedSpecialSlotIndex: null // 记录特殊性状栏位的槽位索引
+    selectedSpecialSlotIndex: null, // 记录特殊性状栏位的槽位索引
+    playerSpeciesCounter: 0, // 玩家总共创建的物种数量计数器
+    aiSpeciesCounter: 0 // AI总共创建的物种数量计数器
 };
 
 // 全局tooltip管理器
@@ -77,7 +90,7 @@ const tooltipManager = {
 
 // 玩家和AI数据
 const player = {
-    name: '玩家',
+    get name() { return getText('player'); },
     species: [],
     hand: []
 };
@@ -123,6 +136,10 @@ function initGame(maxSpeciesCount = 3) {
     gameState.gameEnded = false;
     gameState.playerDuplicatedThisRound = false;
     
+    // 重置物种计数器
+    gameState.playerSpeciesCounter = 0;
+    gameState.aiSpeciesCounter = 0;
+    
     // 确保按钮状态正确
     hideDiscardConfirmButton();
     ensureButtonState();
@@ -130,8 +147,10 @@ function initGame(maxSpeciesCount = 3) {
     // 为玩家和AI各创建初始物种（数量为设置的最大值）
     for (let i = 0; i < gameState.maxSpeciesCount; i++) {
         // 创建物种
-        const playerSpecies = createSpecies(`玩家物种 ${i+1}`);
-        const aiSpecies = createSpecies(`AI物种 ${i+1}`);
+        gameState.playerSpeciesCounter++;
+        gameState.aiSpeciesCounter++;
+        const playerSpecies = createSpecies('messages.playerSpecies', { count: gameState.playerSpeciesCounter });
+        const aiSpecies = createSpecies('messages.aiSpecies', { count: gameState.aiSpeciesCounter });
         
         // 为每个物种随机分配初始性状
         playerSpecies.traits.body = getRandomTraitByType('body');
@@ -145,21 +164,28 @@ function initGame(maxSpeciesCount = 3) {
         player.species.push(playerSpecies);
         ai.species.push(aiSpecies);
         
-        logMessage(`创建了${playerSpecies.name}，初始特征：${playerSpecies.traits.body.name}、${playerSpecies.traits.fur.name}、${playerSpecies.traits.blood.name}`);
-        logMessage(`创建了${aiSpecies.name}，初始特征：${aiSpecies.traits.body.name}、${aiSpecies.traits.fur.name}、${aiSpecies.traits.blood.name}`);
+        const playerTraits = `${playerSpecies.traits.body.name}、${playerSpecies.traits.fur.name}、${playerSpecies.traits.blood.name}`;
+        const aiTraits = `${aiSpecies.traits.body.name}、${aiSpecies.traits.fur.name}、${aiSpecies.traits.blood.name}`;
+        
+        logMessage(formatMessage('messages.speciesCreated', { name: playerSpecies.name, traits: playerTraits }));
+        logMessage(formatMessage('messages.speciesCreated', { name: aiSpecies.name, traits: aiTraits }));
     }
     
     updateUI();
-    logMessage(`游戏开始！每位玩家有${gameState.maxSpeciesCount}个初始物种。`);
+    logMessage(formatMessage('messages.gameStart', { count: gameState.maxSpeciesCount }));
     
     // 开始第一阶段
     startPhase(0);
 }
 
 // 创建物种
-function createSpecies(name) {
+function createSpecies(nameKey, nameParams = {}) {
     return {
-        name: name,
+        nameKey: nameKey, // 存储翻译键
+        nameParams: nameParams, // 存储参数
+        get name() { 
+            return formatMessage(this.nameKey, this.nameParams); 
+        },
         traits: {
             body: null,   // 体型栏位
             fur: null,    // 皮毛栏位
@@ -222,20 +248,20 @@ function updateEnvironmentDisplay() {
             climateStateName.textContent = gameState.climateState.name;
             // 根据气候状态设置样式
             climateStateCard.className = 'climate-card';
-            switch (gameState.climateState.name) {
-                case '大冰室期':
+            switch (gameState.climateState.id) {
+                case 1: // 大冰室期
                     climateStateCard.classList.add('ice-age');
                     break;
-                case '冰室期':
+                case 2: // 冰室期
                     climateStateCard.classList.add('ice-house');
                     break;
-                case '缓和期':
+                case 3: // 缓和期
                     climateStateCard.classList.add('moderate');
                     break;
-                case '温室期':
+                case 4: // 温室期
                     climateStateCard.classList.add('greenhouse');
                     break;
-                case '大温室期':
+                case 5: // 大温室期
                     climateStateCard.classList.add('super-greenhouse');
                     break;
             }
@@ -310,14 +336,14 @@ function updateUI() {
     }
     
     // 更新AI手牌数量
-    document.getElementById('ai-hand-count').textContent = `(手牌: ${ai.hand.length}张)`;
+    document.getElementById('ai-hand-count').textContent = `(${getText('handCount')}: ${ai.hand.length}${getText('cardUnit')})`;
     
     // 如果在性状分配阶段，处理子阶段逻辑
     if (gameState.phase === 1) {
         handleTraitAssignmentSubPhases();
     } else {
         // 其他阶段显示正常按钮文本
-        document.getElementById('next-phase').textContent = '下一阶段';
+        document.getElementById('next-phase').textContent = getText('nextPhase');
         // 确保AI区域可见
         document.getElementById('ai-species-container').style.visibility = 'visible';
     }
@@ -350,6 +376,27 @@ function renderSpecies(containerId, speciesArray) {
         // 如果物种已灭绝，添加灭绝样式
         if (species.extinct) {
             speciesCard.classList.add('extinct-species');
+            
+            // 创建动态灭绝标签
+            const extinctLabel = document.createElement('div');
+            extinctLabel.className = 'extinct-label';
+            extinctLabel.textContent = getText('ui.extinct');
+            extinctLabel.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%) rotate(-15deg);
+                font-size: 18px;
+                font-weight: bold;
+                color: #ff0000;
+                background-color: rgba(255, 255, 255, 0.9);
+                border: 2px solid #ff0000;
+                padding: 4px 8px;
+                border-radius: 4px;
+                pointer-events: none;
+                z-index: 10;
+            `;
+            speciesCard.appendChild(extinctLabel);
         }
         
         if (gameState.selectedSpecies === species) {
@@ -383,10 +430,10 @@ function renderSpecies(containerId, speciesArray) {
                 
                 let tooltipContent = '';
                 if (specialTrait.hot !== undefined && specialTrait.cold !== undefined) {
-                    tooltipContent += `热: ${specialTrait.hot >= 0 ? '+' : ''}${specialTrait.hot}, 冷: ${specialTrait.cold >= 0 ? '+' : ''}${specialTrait.cold}\n`;
+                    tooltipContent += `${getText('adaptability.hot')}: ${specialTrait.hot >= 0 ? '+' : ''}${specialTrait.hot}, ${getText('adaptability.cold')}: ${specialTrait.cold >= 0 ? '+' : ''}${specialTrait.cold}\n`;
                     tooltipContent += '-----------\n';
                 } else {
-                    tooltipContent += '(特殊性状)\n-----------\n';
+                    tooltipContent += `(${getText('slotTypes.special')})\n-----------\n`;
                 }
                 tooltipContent += specialTrait.description;
                 
@@ -426,8 +473,8 @@ function renderSpecies(containerId, speciesArray) {
                         specialCircle.classList.add('special-trait-blocked');
                         specialCircle.addEventListener('click', (event) => {
                             event.stopPropagation();
-                            const actionName = gameState.actionMode === 'replace' ? '替换' : '移除';
-                            alert(`特殊性状不能被${actionName}！\n特殊性状一旦装上就是永久的。`);
+                            const actionName = gameState.actionMode === 'replace' ? getText('actions.replaceTrait') : getText('actions.removeTrait');
+                            alert(formatMessage('messages.specialTraitCannotBeModified', { action: actionName }));
                             // 不重置状态，保持在选择栏位的步骤
                         });
                     }
@@ -477,10 +524,10 @@ function renderSpecies(containerId, speciesArray) {
                 // 格式化提示内容
             let tooltipContent = '';
                 if (trait.hot !== undefined && trait.cold !== undefined) {
-                    tooltipContent += `热: ${trait.hot >= 0 ? '+' : ''}${trait.hot}, 冷: ${trait.cold >= 0 ? '+' : ''}${trait.cold}\n`;
+                    tooltipContent += `${getText('adaptability.hot')}: ${trait.hot >= 0 ? '+' : ''}${trait.hot}, ${getText('adaptability.cold')}: ${trait.cold >= 0 ? '+' : ''}${trait.cold}\n`;
                 tooltipContent += '-----------\n';
             } else {
-                tooltipContent += '(特殊性状)\n-----------\n';
+                tooltipContent += `(${getText('slotTypes.special')})\n-----------\n`;
             }
                 tooltipContent += trait.description;
             
@@ -526,7 +573,7 @@ function renderSpecies(containerId, speciesArray) {
                 }
             }
         } else {
-                slot.textContent = `${slotTypeNames[traitType]}: 空栏位`;
+                slot.textContent = `${slotTypeNames[traitType]}: ${getText('ui.emptySlot')}`;
             
             // 为空栏位添加点击事件（只能用于添加操作）
             if (containerId === 'player-species-container' && gameState.phase === 1) {
@@ -553,11 +600,11 @@ function renderSpecies(containerId, speciesArray) {
         
         const hotSpan = document.createElement('span');
         hotSpan.className = 'adaptability-hot';
-        hotSpan.textContent = `热: ${hotAdaptability >= 0 ? '+' : ''}${hotAdaptability}`;
+        hotSpan.textContent = `${getText('adaptability.hot')}: ${hotAdaptability >= 0 ? '+' : ''}${hotAdaptability}`;
         
         const coldSpan = document.createElement('span');
         coldSpan.className = 'adaptability-cold';
-        coldSpan.textContent = `冷: ${coldAdaptability >= 0 ? '+' : ''}${coldAdaptability}`;
+        coldSpan.textContent = `${getText('adaptability.cold')}: ${coldAdaptability >= 0 ? '+' : ''}${coldAdaptability}`;
         
         adaptabilityDisplay.appendChild(hotSpan);
         adaptabilityDisplay.appendChild(document.createTextNode(' | '));
@@ -734,10 +781,10 @@ function renderHand(containerId, hand) {
         // 格式化提示内容
         let tooltipContent = '';
         if (trait.hot !== undefined && trait.cold !== undefined) {
-            tooltipContent += `热: ${trait.hot >= 0 ? '+' : ''}${trait.hot}, 冷: ${trait.cold >= 0 ? '+' : ''}${trait.cold}\n`;
+            tooltipContent += `${getText('adaptability.hot')}: ${trait.hot >= 0 ? '+' : ''}${trait.hot}, ${getText('adaptability.cold')}: ${trait.cold >= 0 ? '+' : ''}${trait.cold}\n`;
             tooltipContent += '-----------\n';
         } else {
-            tooltipContent += '(特殊性状)\n-----------\n';
+            tooltipContent += `(${getText('slotTypes.special')})\n-----------\n`;
         }
         tooltipContent += trait.description;
         
@@ -816,13 +863,13 @@ function selectSpecies(species) {
     // 在性状分配阶段
     if (gameState.phase === 1) {
         if (gameState.actionPoints <= 0) {
-            logMessage('你的行动点数已用完，无法再进行操作');
+            logMessage(formatMessage('messages.actionPointsExhausted'));
             return;
         }
         
         // 如果当前正在选择栏位或手牌（assignStep > 1），不允许重新选择物种
         if (gameState.assignStep > 1) {
-            logMessage('请完成当前操作或取消后再选择其他物种');
+            logMessage(formatMessage('messages.completeCurrentAction'));
             return;
         }
         
@@ -834,7 +881,7 @@ function selectSpecies(species) {
         gameState.selectedSpecies = species;
         gameState.assignStep = 1; // 进入选择操作步骤
         
-        logMessage(`已选择 ${species.name}，请选择要执行的操作`);
+        logMessage(formatMessage('messages.speciesSelected', { species: species.name }));
         
         // 显示操作面板
         document.getElementById('species-action-panel').classList.remove('hidden');
@@ -843,7 +890,7 @@ function selectSpecies(species) {
     // 处理复苏阶段的物种复制
     else if (gameState.phase === 3 && gameState.revivalMode) {
         if (species.extinct) {
-            logMessage(`无法复制已灭绝的物种`);
+            logMessage(formatMessage('messages.cannotCopyExtinct'));
             return;
         }
         
@@ -865,7 +912,7 @@ function executeTrait(action) {
     if (action === 'remove') {
         gameState.actionMode = 'remove';
         gameState.assignStep = 1; // 设置为选择栏位步骤
-        logMessage('请选择要移除性状的栏位（注意：特殊性状不能被移除）');
+        logMessage(formatMessage('messages.selectSlotForRemove'));
         document.getElementById('species-action-panel').classList.add('hidden');
         updateUI();
         return;
@@ -873,13 +920,13 @@ function executeTrait(action) {
     
     // 对于添加和替换操作，只需要选择了物种即可
     if (!gameState.selectedSpecies) {
-        logMessage('请先选择物种');
+        logMessage(formatMessage('messages.selectSpeciesFirst'));
         return;
     }
     
     // 检查是否还有行动点数
     if (gameState.actionPoints <= 0) {
-        logMessage('你的行动点数已用完，无法再进行操作');
+        logMessage(formatMessage('messages.actionPointsExhausted'));
         return;
     }
     
@@ -888,9 +935,9 @@ function executeTrait(action) {
     gameState.assignStep = 1; // 进入选择栏位步骤
     
     if (action === 'add') {
-        logMessage('请选择要添加性状的栏位（只能选择空栏位）');
+        logMessage(formatMessage('messages.selectSlotForAdd'));
     } else if (action === 'replace') {
-        logMessage('请选择要替换性状的栏位（注意：特殊性状不能被替换）');
+        logMessage(formatMessage('messages.selectSlotForReplace'));
     }
     
     // 隐藏操作面板
@@ -1012,7 +1059,7 @@ function aiAssignTraits() {
         
         // 如果没有可用操作，直接跳出循环
         if (availableOperations.length === 0) {
-            logMessage('AI 没有找到任何可执行的操作，提前结束分配阶段');
+            logMessage(formatMessage('messages.aiNoValidActions'));
             break;
         }
         
@@ -1050,16 +1097,25 @@ function aiAssignTraits() {
                 
             case 'add_regular':
                 species.traits[slotType] = trait;
-                const slotTypeName = slotType === 'body' ? '体型' : slotType === 'fur' ? '皮毛' : '血液';
-                aiActions.push(`为 ${species.name} 添加${slotTypeName}性状: ${trait.name}`);
+                const slotTypeName = slotTypeNames[slotType];
+                aiActions.push(formatMessage('messages.aiAddedTrait', { 
+                    species: species.name, 
+                    slotType: slotTypeName, 
+                    trait: trait.name 
+                }));
                 operationPerformed = true;
                 break;
                 
             case 'replace_regular':
                 const oldTrait = species.traits[slotType];
                 species.traits[slotType] = trait;
-                const slotName = slotType === 'body' ? '体型' : slotType === 'fur' ? '皮毛' : '血液';
-                aiActions.push(`将 ${species.name} 的${slotName}性状 ${oldTrait.name} 替换为 ${trait.name}`);
+                const slotName = slotTypeNames[slotType];
+                aiActions.push(formatMessage('messages.aiReplacedTrait', { 
+                    species: species.name, 
+                    slotType: slotName, 
+                    oldTrait: oldTrait.name, 
+                    newTrait: trait.name 
+                }));
                 operationPerformed = true;
                 break;
         }
@@ -1071,12 +1127,12 @@ function aiAssignTraits() {
     
     // 汇总显示AI的操作
     if (aiActions.length > 0) {
-        logMessage(`AI 使用了 ${operationsPerformed} 点行动点数，进行了以下操作:`);
+        logMessage(formatMessage('messages.aiActionsUsed', { points: operationsPerformed }));
         aiActions.forEach(action => {
-            logMessage(`- ${action}`);
+            logMessage(formatMessage('messages.aiActionItem', { action: action }));
         });
     } else {
-        logMessage('AI 没有进行任何性状分配操作');
+        logMessage(formatMessage('messages.aiNoActions'));
     }
 }
 
@@ -1112,7 +1168,7 @@ function startPhase(phaseIndex) {
 
 // 抽牌阶段
 function drawPhase() {
-    logMessage('===== 抽牌阶段 =====');
+    logMessage(formatMessage('messages.drawPhaseStart'));
     
     // 每回合开始时重置环境严峻程度
     gameState.environmentSeverity = 0;
@@ -1121,27 +1177,27 @@ function drawPhase() {
     gameState.climateState = drawClimateState();
     gameState.temperatureChange = drawTemperatureChange();
     
-    logMessage(`主持人抽取了气候状态卡: ${gameState.climateState.name}`);
-    logMessage(`主持人抽取了温度变化卡: ${gameState.temperatureChange.name}`);
+    logMessage(formatMessage('messages.climateCardDrawn', { card: gameState.climateState.name }));
+    logMessage(formatMessage('messages.temperatureCardDrawn', { card: gameState.temperatureChange.name }));
     
     // 玩家抽牌（数量=当前存活物种数）
     const playerAliveSpecies = player.species.filter(s => !s.extinct).length;
     const playerDrawn = drawRegularTraits(playerAliveSpecies);
     player.hand.push(...playerDrawn);
-    logMessage(`你抽取了 ${playerDrawn.length} 张性状卡`);
+    logMessage(formatMessage('messages.playerCardsDrawn', { count: playerDrawn.length }));
     
     // AI抽牌
     const aiAliveSpecies = ai.species.filter(s => !s.extinct).length;
     const aiDrawn = drawRegularTraits(aiAliveSpecies);
     ai.hand.push(...aiDrawn);
-    logMessage(`AI 抽取了 ${aiDrawn.length} 张性状卡`);
+    logMessage(formatMessage('messages.aiCardsDrawn', { count: aiDrawn.length }));
     
     updateUI();
 }
 
 // 性状分配阶段
 function traitAssignmentPhase() {
-    logMessage('===== 性状分配阶段 =====');
+    logMessage(formatMessage('messages.assignPhaseStart'));
     
     // 重置性状分配标记
     gameState.playerTraitAssigned = false;
@@ -1166,17 +1222,21 @@ function traitAssignmentPhase() {
     gameState.actionPoints += extraActionPoints;
     
     if (extraActionPoints > 0) {
-        logMessage(`你有 ${extraActionPoints} 个物种装备了"快速繁衍"特殊性状，额外获得 ${extraActionPoints} 点行动点数`);
+        logMessage(formatMessage('messages.fastBreedingBonus', { count: extraActionPoints }));
     }
     
     // 玩家分配阶段
-    logMessage('玩家分配阶段：请按照以下步骤操作:');
-    logMessage('1. 选择一个物种');
-    logMessage('2. 选择要执行的操作类型（添加/替换/移除）');
-    logMessage('3. 选择要操作的栏位');
-    logMessage('4. 选择要使用的手牌（添加/替换操作需要）');
-    logMessage(`你有 ${gameState.actionPoints} 点行动点数（${playerAliveSpecies.length}个存活物种 + ${extraActionPoints}个特殊性状加成），每次操作消耗1点`);
-    logMessage('完成后点击"下一阶段"按钮');
+    logMessage(formatMessage('messages.playerAssignInstructions'));
+    logMessage(formatMessage('messages.step1'));
+    logMessage(formatMessage('messages.step2'));
+    logMessage(formatMessage('messages.step3'));
+    logMessage(formatMessage('messages.step4'));
+    logMessage(formatMessage('messages.actionPointsInfo', { 
+        total: gameState.actionPoints, 
+        species: playerAliveSpecies.length, 
+        bonus: extraActionPoints 
+    }));
+    logMessage(formatMessage('messages.clickNextPhase'));
     
     // 在性状分配阶段始终显示AI的物种信息
     document.getElementById('ai-species-container').style.visibility = 'visible';
@@ -1190,17 +1250,17 @@ function handleTraitAssignmentSubPhases() {
     switch (gameState.subPhase) {
         case 0: // 玩家分配阶段
             // 这个阶段由玩家手动完成，点击"下一阶段"按钮时设置playerTraitAssigned为true
-            document.getElementById('next-phase').textContent = '完成性状分配';
+            document.getElementById('next-phase').textContent = getText('actions.confirmAction');
             break;
             
         case 1: // AI分配阶段并直接展示结果
-            document.getElementById('next-phase').textContent = '下一阶段';
+            document.getElementById('next-phase').textContent = getText('nextPhase');
             if (!gameState.aiTraitAssigned) {
-                logMessage('AI正在分配性状...');
+                logMessage(formatMessage('messages.aiAssigning'));
                 // AI自动进行性状分配
                 aiAssignTraits();
                 gameState.aiTraitAssigned = true;
-                logMessage('所有玩家已完成性状分配，结果已展示');
+                logMessage(formatMessage('messages.assignmentComplete'));
             }
             break;
     }
@@ -1214,16 +1274,16 @@ function cleanupExtinctSpecies() {
     // 移除AI的已灭绝物种
     ai.species = ai.species.filter(species => !species.extinct);
     
-    logMessage('已清理灭绝的物种');
+    logMessage(formatMessage('messages.extinctsCleared'));
 }
 
 // 灭绝阶段
 function extinctionPhase() {
-    logMessage('===== 灭绝阶段 =====');
+    logMessage(formatMessage('messages.extinctionPhaseStart'));
     
     // 主持人（游戏系统）自动掷骰子决定基础环境严峻程度
     const diceResult = rollDice();
-    logMessage(`主持人掷骰结果: ${diceResult}`);
+    logMessage(formatMessage('messages.diceResult', { result: diceResult }));
     
     // 根据气候状态和温度变化计算最终环境
     const finalEnvironment = calculateFinalSeverity(diceResult, gameState.climateState, gameState.temperatureChange);
@@ -1243,13 +1303,13 @@ function extinctionPhase() {
         climateEffect = iceBonus - heatPenalty;
         
         if (iceBonus > 0 && heatPenalty > 0) {
-            climateDescription = `冰室效应+${iceBonus}，温室效应-${heatPenalty}`;
+            climateDescription = `${getText('messages.iceEffect')}+${iceBonus}，${getText('messages.greenhouseEffect')}-${heatPenalty}`;
         } else if (iceBonus > 0) {
-            climateDescription = `冰室效应+${iceBonus}`;
+            climateDescription = `${getText('messages.iceEffect')}+${iceBonus}`;
         } else if (heatPenalty > 0) {
-            climateDescription = `温室效应-${heatPenalty}`;
+            climateDescription = `${getText('messages.greenhouseEffect')}-${heatPenalty}`;
         } else {
-            climateDescription = '无气候影响';
+            climateDescription = getText('messages.noClimateEffect');
         }
     } else {
         // 升温环境：温室期加强，冰室期减弱
@@ -1258,36 +1318,78 @@ function extinctionPhase() {
         climateEffect = heatBonus - icePenalty;
         
         if (heatBonus > 0 && icePenalty > 0) {
-            climateDescription = `温室效应+${heatBonus}，冰室效应-${icePenalty}`;
+            climateDescription = `${getText('messages.greenhouseEffect')}+${heatBonus}，${getText('messages.iceEffect')}-${icePenalty}`;
         } else if (heatBonus > 0) {
-            climateDescription = `温室效应+${heatBonus}`;
+            climateDescription = `${getText('messages.greenhouseEffect')}+${heatBonus}`;
         } else if (icePenalty > 0) {
-            climateDescription = `冰室效应-${icePenalty}`;
+            climateDescription = `${getText('messages.iceEffect')}-${icePenalty}`;
         } else {
-            climateDescription = '无气候影响';
+            climateDescription = getText('messages.noClimateEffect');
         }
     }
     
-    logMessage(`气候状态"${gameState.climateState.name}"对${envName}环境的影响: ${climateDescription}`);
+    logMessage(formatMessage('messages.climateEffect', { 
+        climate: gameState.climateState.name, 
+        environment: envName, 
+        description: climateDescription 
+    }));
     
     const effectSign = climateEffect >= 0 ? '+' : '';
-    logMessage(`最终环境: ${envName}, 严峻程度: ${gameState.environmentSeverity} (${diceResult} ${effectSign}${climateEffect})`);
+    logMessage(formatMessage('messages.finalEnvironment', { 
+        type: envName, 
+        severity: gameState.environmentSeverity, 
+        dice: diceResult, 
+        effect: `${effectSign}${climateEffect}` 
+    }));
     
     if (gameState.environmentSeverity === 0) {
-        logMessage('环境被气候状态完全抵消，无物种灭绝！');
+        logMessage(formatMessage('messages.environmentNeutralized'));
     }
     
     // 检查玩家物种灭绝
     for (const species of player.species) {
         if (species.extinct) continue;
         
-        const extinct = checkExtinction(species, gameState.environmentType, gameState.environmentSeverity);
-        if (extinct) {
-            species.extinct = true;
-            logMessage(`你的物种 ${species.name} 灭绝了！`);
+        // 先计算适应性检查是否应该灭绝
+        const adaptability = calculateAdaptability(species, gameState.environmentType);
+        const shouldExtinct = adaptability < gameState.environmentSeverity;
+        
+        if (shouldExtinct) {
+            // 检查是否有灾难物种免疫
+            let immunityUsed = false;
+            for (let i = 0; i < species.specialTraits.length; i++) {
+                const specialTrait = species.specialTraits[i];
+                if (specialTrait && specialTrait.effect === 'extinctionImmunity') {
+                    // 触发免疫
+                    const usedTrait = {
+                        id: 104,
+                        name: getText('traits.disasterUsed'),
+                        effect: 'extinctionImmunityUsed',
+                        color: '#795548',
+                        description: getText('traits.disasterUsedDesc')
+                    };
+                    species.specialTraits[i] = usedTrait;
+                    immunityUsed = true;
+                    logMessage(formatMessage('messages.disasterTraitActivated', { 
+                        species: species.name, 
+                        adaptability: adaptability 
+                    }));
+                    break;
+                }
+            }
+            
+            if (!immunityUsed) {
+                species.extinct = true;
+                logMessage(formatMessage('messages.speciesExtinctPlayer', { 
+                    species: species.name, 
+                    adaptability: adaptability 
+                }));
+            }
         } else {
-            const adaptability = calculateAdaptability(species, gameState.environmentType);
-            logMessage(`你的物种 ${species.name} 存活，适应性: ${adaptability}`);
+            logMessage(formatMessage('messages.speciesSurvived', { 
+                species: species.name, 
+                adaptability: adaptability 
+            }));
         }
     }
     
@@ -1295,13 +1397,46 @@ function extinctionPhase() {
     for (const species of ai.species) {
         if (species.extinct) continue;
         
-        const extinct = checkExtinction(species, gameState.environmentType, gameState.environmentSeverity);
-        if (extinct) {
-            species.extinct = true;
-            logMessage(`AI的物种 ${species.name} 灭绝了！`);
+        // 先计算适应性检查是否应该灭绝
+        const adaptability = calculateAdaptability(species, gameState.environmentType);
+        const shouldExtinct = adaptability < gameState.environmentSeverity;
+        
+        if (shouldExtinct) {
+            // 检查是否有灾难物种免疫
+            let immunityUsed = false;
+            for (let i = 0; i < species.specialTraits.length; i++) {
+                const specialTrait = species.specialTraits[i];
+                if (specialTrait && specialTrait.effect === 'extinctionImmunity') {
+                    // 触发免疫
+                    const usedTrait = {
+                        id: 104,
+                        name: getText('traits.disasterUsed'),
+                        effect: 'extinctionImmunityUsed',
+                        color: '#795548',
+                        description: getText('traits.disasterUsedDesc')
+                    };
+                    species.specialTraits[i] = usedTrait;
+                    immunityUsed = true;
+                    logMessage(formatMessage('messages.aiDisasterTraitActivated', { 
+                        species: species.name, 
+                        adaptability: adaptability 
+                    }));
+                    break;
+                }
+            }
+            
+            if (!immunityUsed) {
+                species.extinct = true;
+                logMessage(formatMessage('messages.aiSpeciesExtinct', { 
+                    species: species.name, 
+                    adaptability: adaptability 
+                }));
+            }
         } else {
-            const adaptability = calculateAdaptability(species, gameState.environmentType);
-            logMessage(`AI的物种 ${species.name} 存活，适应性: ${adaptability}`);
+            logMessage(formatMessage('messages.aiSpeciesSurvived', { 
+                species: species.name, 
+                adaptability: adaptability 
+            }));
         }
     }
     
@@ -1310,7 +1445,7 @@ function extinctionPhase() {
 
 // 复苏阶段
 function revivalPhase() {
-    logMessage('===== 复苏阶段 =====');
+    logMessage(formatMessage('messages.revivalPhaseStart'));
     
     // 清理上一阶段灭绝的物种
     cleanupExtinctSpecies();
@@ -1325,7 +1460,7 @@ function revivalPhase() {
     
     // 检查双方是否都完全灭绝
     if (playerAliveSpecies.length === 0 && aiAliveSpecies.length === 0) {
-        logMessage('双方都已完全灭绝！游戏结束，平局！');
+        logMessage(formatMessage('messages.bothExtinct'));
         gameState.gameEnded = true;
         ensureButtonState();
         return;
@@ -1333,7 +1468,7 @@ function revivalPhase() {
     
     // 检查玩家是否完全灭绝
     if (playerAliveSpecies.length === 0) {
-        logMessage('你已经完全灭绝！游戏结束，AI获胜！');
+        logMessage(formatMessage('messages.playerTotalExtinct'));
         gameState.gameEnded = true;
         ensureButtonState();
         return;
@@ -1341,7 +1476,7 @@ function revivalPhase() {
     
     // 检查AI是否完全灭绝
     if (aiAliveSpecies.length === 0) {
-        logMessage('AI已经完全灭绝！游戏结束，你获胜！');
+        logMessage(formatMessage('messages.aiTotalExtinct'));
         gameState.gameEnded = true;
         ensureButtonState();
         return;
@@ -1350,12 +1485,19 @@ function revivalPhase() {
     // 首先检查是否达到最大物种数量，如果是则给予特殊性状牌奖励
     if (playerAliveSpecies.length >= gameState.maxSpeciesCount) {
         const specialTrait = drawSpecialTrait();
-        player.hand.push(specialTrait);
-        logMessage(`你的物种数量达到最大值（${gameState.maxSpeciesCount}个），获得了一张特殊性状牌: ${specialTrait.name}`);
+        if (specialTrait) {
+            player.hand.push(specialTrait);
+            logMessage(formatMessage('messages.maxSpeciesReached', { 
+                max: gameState.maxSpeciesCount, 
+                trait: specialTrait.name 
+            }));
+        } else {
+            logMessage(formatMessage('messages.maxSpeciesNoTrait', { max: gameState.maxSpeciesCount }));
+        }
     } else if (playerAliveSpecies.length > 0) {
         // 玩家物种少于最大值，可复制一个存活物种
         document.getElementById('duplicate-species').classList.remove('hidden');
-        logMessage('你可以复制一个存活的物种。点击"复制物种"按钮开始选择。');
+        logMessage(formatMessage('messages.canCopySpecies'));
         
         // 暂停处理AI，等待玩家完成复制
         updateUI();
@@ -1370,7 +1512,7 @@ function revivalPhase() {
 
 // 弃牌阶段
 function discardPhase() {
-    logMessage('===== 弃牌阶段 =====');
+    logMessage(formatMessage('messages.discardPhaseStart'));
     
     // 计算玩家和AI应保留的牌数
     const playerAliveSpecies = player.species.filter(s => !s.extinct).length;
@@ -1382,8 +1524,8 @@ function discardPhase() {
     // 玩家弃牌
     if (player.hand.length > playerAliveSpecies) {
         const needToDiscard = player.hand.length - playerAliveSpecies;
-        logMessage(`你需要弃掉至少 ${needToDiscard} 张性状卡`);
-        logMessage('请点击要弃掉的性状卡，然后点击"确认弃牌"按钮');
+        logMessage(formatMessage('messages.needToDiscard', { count: needToDiscard }));
+        logMessage(formatMessage('messages.clickToDiscard'));
         
         // 显示弃牌确认按钮
         showDiscardConfirmButton();
@@ -1405,7 +1547,7 @@ function discardPhase() {
             const randomIndex = Math.floor(Math.random() * ai.hand.length);
             ai.hand.splice(randomIndex, 1);
         }
-        logMessage(`AI 弃掉了 ${discardCount} 张性状卡`);
+        logMessage(formatMessage('messages.aiDiscarded', { count: discardCount }));
     }
     
     // 如果没有进入选择模式，则直接结束回合
@@ -1419,14 +1561,18 @@ function confirmDiscard() {
     const needToDiscard = player.hand.length - playerAliveSpecies;
     
     if (gameState.selectedCards.length < needToDiscard) {
-        logMessage(`你必须至少弃掉 ${needToDiscard} 张性状卡，当前只选择了 ${gameState.selectedCards.length} 张`);
-        logMessage('请继续选择要弃掉的性状卡');
+        logMessage(formatMessage('messages.mustDiscardMore', { 
+            need: needToDiscard, 
+            selected: gameState.selectedCards.length 
+        }));
+        logMessage(formatMessage('messages.continueSelecting'));
         // 不隐藏按钮，让玩家继续选择
         return;
     }
     
     // 选择足够的牌后，隐藏弃牌确认按钮
     hideDiscardConfirmButton();
+    
     
     // 从大到小排序，以便删除时索引不会变化
     gameState.selectedCards.sort((a, b) => b - a);
@@ -1436,7 +1582,7 @@ function confirmDiscard() {
         player.hand.splice(index, 1);
     }
     
-    logMessage(`你弃掉了 ${gameState.selectedCards.length} 张性状卡`);
+    logMessage(formatMessage('messages.playerDiscarded', { count: gameState.selectedCards.length }));
     gameState.selectedCards = [];
     gameState.isDiscardMode = false;
     
@@ -1451,7 +1597,7 @@ function confirmDiscard() {
             const randomIndex = Math.floor(Math.random() * ai.hand.length);
             ai.hand.splice(randomIndex, 1);
         }
-        logMessage(`AI 弃掉了 ${discardCount} 张性状卡`);
+        logMessage(formatMessage('messages.aiDiscarded', { count: discardCount }));
     }
     
     finishDiscardPhase();
@@ -1467,7 +1613,7 @@ function finishDiscardPhase() {
     hideDiscardConfirmButton();
     
     // 回合结束
-    logMessage(`回合 ${gameState.round} 结束`);
+    logMessage(formatMessage('messages.roundEnd', { round: gameState.round }));
     gameState.round++;
     
     // 立即确保按钮状态正确
@@ -1500,7 +1646,7 @@ function showDiscardConfirmButton() {
     const confirmBtn = document.createElement('button');
     confirmBtn.id = 'confirm-discard';
     confirmBtn.className = 'btn';
-    confirmBtn.textContent = '确认弃牌';
+    confirmBtn.textContent = getText('actions.confirmDiscard');
     confirmBtn.addEventListener('click', confirmDiscard);
     
     // 添加到控制面板中，在下一阶段按钮之前
@@ -1541,7 +1687,7 @@ function ensureButtonState() {
     if (gameState.gameEnded) {
         if (nextPhaseBtn) {
             nextPhaseBtn.disabled = true;
-            nextPhaseBtn.textContent = '游戏已结束';
+            nextPhaseBtn.textContent = getText('actions.gameEnded');
             nextPhaseBtn.style.opacity = '0.5';
         }
         if (confirmBtn) {
@@ -1566,10 +1712,10 @@ function ensureButtonState() {
             const selected = gameState.selectedCards.length;
             
             if (selected < needToDiscard) {
-                confirmBtn.textContent = `确认弃牌 (${selected}/${needToDiscard})`;
+                confirmBtn.textContent = formatMessage('actions.confirmDiscardCount', { selected: selected, needed: needToDiscard });
                 confirmBtn.disabled = false; // 允许点击，但会提示不足
             } else {
-                confirmBtn.textContent = `确认弃牌 (${selected}/${needToDiscard})`;
+                confirmBtn.textContent = formatMessage('actions.confirmDiscardCount', { selected: selected, needed: needToDiscard });
                 confirmBtn.disabled = false;
             }
         }
@@ -1643,7 +1789,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 !gameState.playerDuplicatedThisRound) {
                 
                 // 显示自定义确认对话框
-                const confirmText = `你当前有 ${playerAliveSpecies.length} 个存活物种，可以复制一个物种增加到 ${playerAliveSpecies.length + 1} 个。\n\n确定要放弃复制物种的机会吗？`;
+                const confirmText = formatMessage('messages.duplicateConfirmText', { 
+                    current: playerAliveSpecies.length, 
+                    next: playerAliveSpecies.length + 1 
+                });
                 document.getElementById('duplication-confirm-text').textContent = confirmText;
                 document.getElementById('duplication-confirm-panel').classList.remove('hidden');
                 return; // 停止执行，等待用户选择
@@ -1711,7 +1860,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
             if (gameState.phase === 1 && gameState.assignStep > 0) {
-                logMessage('已取消当前操作');
+                logMessage(formatMessage('messages.operationCancelled'));
                 resetTraitSelection();
                 updateUI();
             }
@@ -1730,7 +1879,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 玩家确认跳过复制，隐藏复制按钮并处理AI复苏
         document.getElementById('duplicate-species').classList.add('hidden');
-        logMessage('你选择放弃复制物种的机会');
+        logMessage(formatMessage('messages.skipCopyDecision'));
         
         // 处理AI的复苏
         const aiAliveSpecies = ai.species.filter(s => !s.extinct);
@@ -1745,7 +1894,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cancel-skip-duplication').addEventListener('click', function() {
         // 隐藏对话框
         document.getElementById('duplication-confirm-panel').classList.add('hidden');
-        logMessage('已取消进入下一阶段，你可以继续选择复制物种');
+        logMessage(formatMessage('messages.cancelNextPhase'));
     });
     
     // 不再自动开始游戏，等待玩家在设置面板点击开始
@@ -1757,13 +1906,13 @@ function removeTraitFromSlot(species, slotType) {
     
     // 检查是否还有行动点数
     if (gameState.actionPoints <= 0) {
-        logMessage('你的行动点数已用完，无法再进行操作');
+        logMessage(formatMessage('messages.actionPointsExhausted'));
         return;
     }
     
     // 检查是否试图移除特殊性状
     if (slotType === 'special') {
-        logMessage('特殊性状不能被移除！');
+        logMessage(formatMessage('messages.specialTraitCannotRemove'));
         return;
     }
     
@@ -1773,7 +1922,7 @@ function removeTraitFromSlot(species, slotType) {
     traitToRemove = species.traits[slotType];
     
     if (!traitToRemove) {
-        logMessage('该栏位没有性状可移除');
+        logMessage(formatMessage('messages.emptySlotCannotRemove'));
         return;
     }
     
@@ -1786,9 +1935,12 @@ function removeTraitFromSlot(species, slotType) {
     };
     
     // 更新确认文本
-    const typeName = slotType === 'body' ? '体型' : 
-                    slotType === 'fur' ? '皮毛' : '血液';
-    const confirmText = `是否确认从 ${species.name} 移除${typeName}性状: ${traitToRemove.name}？`;
+    const typeName = slotTypeNames[slotType];
+    const confirmText = formatMessage('messages.confirmRemoveText', { 
+        species: species.name, 
+        type: typeName, 
+        trait: traitToRemove.name 
+    });
     document.getElementById('confirm-operation-text').textContent = confirmText;
     document.getElementById('confirm-trait-panel').classList.remove('hidden');
     
@@ -1809,13 +1961,16 @@ function confirmRemoveTraitAction() {
         species.traits[slotType] = null;
     }
     
-    const typeName = slotType === 'body' ? '体型' : 
-                    slotType === 'fur' ? '皮毛' : '血液';
-    logMessage(`从 ${species.name} 移除了${typeName}性状: ${traitName}`);
+    const typeName = slotTypeNames[slotType];
+    logMessage(formatMessage('messages.traitRemovedFrom', { 
+        species: species.name, 
+        type: typeName, 
+        trait: traitName 
+    }));
     
     // 消耗一点行动点数
     gameState.actionPoints--;
-    logMessage(`剩余行动点数: ${gameState.actionPoints}`);
+    logMessage(formatMessage('messages.remainingActionPoints', { points: gameState.actionPoints }));
     
     // 重置选择和操作模式
     resetTraitSelection();
@@ -1839,7 +1994,7 @@ function toggleCardForDiscard(index) {
 // 为指定栏位选择性状（用于性状分配阶段）
 function selectTraitForSlot(trait) {
     if (!gameState.selectedSpecies || !gameState.selectedSlotType) {
-        logMessage('错误: 未选择物种或栏位');
+        logMessage(formatMessage('messages.errorNoSpeciesOrSlot'));
         return;
     }
     
@@ -1848,13 +2003,11 @@ function selectTraitForSlot(trait) {
     
     // 检查行动点数是否足够
     if (gameState.actionPoints <= 0) {
-        logMessage('你的行动点数已经用完了');
+        logMessage(formatMessage('messages.actionPointsEmpty'));
         return;
     }
     
-    const slotTypeName = slotType === 'body' ? '体型' :
-                        slotType === 'fur' ? '皮毛' :
-                        slotType === 'blood' ? '血液' : '特殊';
+    const slotTypeName = slotType === 'special' ? slotTypeNames['special'] : slotTypeNames[slotType];
     
     // 存储待确认的操作
     gameState.pendingTraitAction = {
@@ -1868,13 +2021,26 @@ function selectTraitForSlot(trait) {
     // 更新确认文本
     let confirmText = '';
     if (gameState.actionMode === 'add') {
-        confirmText = `是否确认为 ${species.name} 添加 ${trait.name} 到${slotTypeName}栏位？`;
+        confirmText = formatMessage('messages.confirmAddText', { 
+            species: species.name, 
+            trait: trait.name, 
+            slot: slotTypeName 
+        });
     } else if (gameState.actionMode === 'replace') {
         const oldTrait = slotType === 'special' ? species.specialTraits[gameState.selectedSpecialSlotIndex] : species.traits[slotType];
         if (oldTrait) {
-            confirmText = `是否确认将 ${species.name} 的${slotTypeName}性状 ${oldTrait.name} 替换为 ${trait.name}？`;
+            confirmText = formatMessage('messages.confirmReplaceText', { 
+                species: species.name, 
+                slot: slotTypeName, 
+                oldTrait: oldTrait.name, 
+                newTrait: trait.name 
+            });
         } else {
-            confirmText = `是否确认为 ${species.name} 添加 ${trait.name} 到${slotTypeName}栏位？`;
+            confirmText = formatMessage('messages.confirmAddText', { 
+                species: species.name, 
+                trait: trait.name, 
+                slot: slotTypeName 
+            });
         }
     }
     
@@ -1898,9 +2064,7 @@ function confirmTraitAction() {
     // 从玩家手牌中移除该性状卡
     player.hand.splice(traitIndex, 1);
     
-    const slotTypeName = slotType === 'body' ? '体型' :
-                        slotType === 'fur' ? '皮毛' :
-                        slotType === 'blood' ? '血液' : '特殊';
+    const slotTypeName = slotType === 'special' ? slotTypeNames['special'] : slotTypeNames[slotType];
     
     // 根据操作模式执行不同的操作
     if (mode === 'add' || mode === 'replace') {
@@ -1911,9 +2075,16 @@ function confirmTraitAction() {
             if (species.specialTraits[slotIndex] !== null && mode === 'replace') {
                 // 替换特殊栏位的性状，旧性状直接销毁
                 const oldTrait = species.specialTraits[slotIndex];
-                logMessage(`将 ${species.name} 的特殊性状 ${oldTrait.name} 替换为 ${trait.name}，旧性状已销毁`);
+                logMessage(formatMessage('messages.specialTraitReplaced', { 
+                    species: species.name,
+                    old: oldTrait.name,
+                    new: trait.name
+                }));
             } else {
-                logMessage(`为 ${species.name} 添加了特殊性状: ${trait.name}`);
+                logMessage(formatMessage('messages.specialTraitAdded', { 
+                    species: species.name,
+                    trait: trait.name
+                }));
             }
             species.specialTraits[slotIndex] = trait;
         } else {
@@ -1921,9 +2092,18 @@ function confirmTraitAction() {
             if (species.traits[slotType] !== null && mode === 'replace') {
                 // 替换常规栏位的性状，旧性状直接销毁
                 const oldTrait = species.traits[slotType];
-                logMessage(`将 ${species.name} 的${slotTypeName}性状 ${oldTrait.name} 替换为 ${trait.name}，旧性状已销毁`);
+                logMessage(formatMessage('messages.traitReplaced', { 
+                    species: species.name,
+                    type: slotTypeName,
+                    old: oldTrait.name,
+                    new: trait.name
+                }));
             } else {
-                logMessage(`为 ${species.name} 添加了${slotTypeName}性状: ${trait.name}`);
+                logMessage(formatMessage('messages.traitAdded', { 
+                    species: species.name,
+                    type: slotTypeName,
+                    trait: trait.name
+                }));
             }
             species.traits[slotType] = trait;
         }
@@ -1931,7 +2111,7 @@ function confirmTraitAction() {
     
     // 消耗一点行动点数
     gameState.actionPoints--;
-    logMessage(`剩余行动点数: ${gameState.actionPoints}`);
+    logMessage(formatMessage('messages.remainingActionPoints', { points: gameState.actionPoints }));
     
     // 重置状态
     resetTraitSelection();
@@ -1942,7 +2122,7 @@ function confirmTraitAction() {
 // 取消性状操作
 function cancelTraitAction() {
     if (gameState.pendingTraitAction) {
-        logMessage('已取消操作');
+        logMessage(formatMessage('messages.operationCancelled'));
         // 不消耗行动点，重置状态
         resetTraitSelection();
         updateUI();
@@ -1976,10 +2156,10 @@ function enterDuplicationMode() {
     const instructionEl = document.createElement('div');
     instructionEl.id = 'duplication-instruction';
     instructionEl.className = 'instruction-message';
-    instructionEl.textContent = '请选择一个要复制的存活物种';
+    instructionEl.textContent = formatMessage('messages.selectSpeciesToCopy');
     container.insertAdjacentElement('beforebegin', instructionEl);
     
-    logMessage('请选择一个要复制的物种');
+    logMessage(formatMessage('messages.selectSpeciesToCopy'));
     updateUI();
 }
 
@@ -1988,7 +2168,8 @@ function duplicateSpecies(species) {
     if (!gameState.revivalMode) return;
     
     // 创建新的物种
-    const newSpecies = createSpecies(`玩家物种 ${player.species.length + 1}`);
+    gameState.playerSpeciesCounter++;
+    const newSpecies = createSpecies('messages.playerSpecies', { count: gameState.playerSpeciesCounter });
     
     // 复制所有性状
     for (const traitType in species.traits) {
@@ -1999,14 +2180,15 @@ function duplicateSpecies(species) {
     }
     
     // 复制特殊性状（如果有）
-    if (species.specialTraits.some(trait => trait)) {
-        newSpecies.specialTraits = { ...species.specialTraits };
-    }
+    newSpecies.specialTraits = species.specialTraits.map(trait => trait ? {...trait} : null);
     
     // 添加到玩家物种列表
     player.species.push(newSpecies);
     
-    logMessage(`成功复制了 ${species.name}，创建了新物种 ${newSpecies.name}`);
+    logMessage(formatMessage('messages.copySuccess', { 
+        original: species.name, 
+        new: newSpecies.name 
+    }));
     gameState.revivalMode = false;
     gameState.playerDuplicatedThisRound = true; // 标记玩家已完成复制
     
@@ -2040,8 +2222,8 @@ function selectSpecialSlot(slotIndex, species) {
         // 显示兼容性状的提示
         gameState.showingCompatibleTraits = true;
         
-        logMessage(`已选择特殊性状栏位 ${slotIndex + 1}，请从手牌中选择一张特殊性状卡进行添加`);
-        logMessage(`仅显示特殊性状卡，其他卡片已暗显`);
+        logMessage(formatMessage('messages.selectedSpecialSlot', { slot: slotIndex + 1 }));
+        logMessage(formatMessage('messages.onlySpecialCardsShown'));
     }
     
     updateUI();
@@ -2066,13 +2248,14 @@ function selectSlot(slotType, species) {
         gameState.showingCompatibleTraits = true;
         
         // 根据栏位类型，显示不同的提示
-        const slotTypeName = slotType === 'body' ? '体型' :
-                            slotType === 'fur' ? '皮毛' :
-                            slotType === 'blood' ? '血液' : '特殊';
+        const slotTypeName = slotTypeNames[slotType];
         
-        const operationName = gameState.actionMode === 'add' ? '添加到' : '替换';
-        logMessage(`已选择${slotTypeName}栏位，请从手牌中选择一张兼容的性状卡进行${operationName}`);
-        logMessage(`仅显示与${slotTypeName}栏位兼容的性状卡，其他卡片已暗显`);
+        const operationName = gameState.actionMode === 'add' ? formatMessage('actions.addTrait') : formatMessage('actions.replaceTrait');
+        logMessage(formatMessage('messages.selectedSlot', { 
+            slot: slotTypeName, 
+            operation: operationName 
+        }));
+        logMessage(formatMessage('messages.onlyCompatibleShown', { slot: slotTypeName }));
     }
     
     updateUI();
@@ -2083,14 +2266,22 @@ function handleAIRevival(aiAliveSpecies) {
     // 对AI进行复苏处理
     if (aiAliveSpecies.length >= gameState.maxSpeciesCount) {
         const specialTrait = drawSpecialTrait();
-        ai.hand.push(specialTrait);
-        logMessage(`AI的物种数量达到最大值（${gameState.maxSpeciesCount}个），获得了一张特殊性状牌: ${specialTrait.name}`);
+        if (specialTrait) {
+            ai.hand.push(specialTrait);
+            logMessage(formatMessage('messages.aiMaxSpeciesReached', { 
+                max: gameState.maxSpeciesCount, 
+                trait: specialTrait.name 
+            }));
+        } else {
+            logMessage(formatMessage('messages.aiMaxSpeciesNoTrait', { max: gameState.maxSpeciesCount }));
+        }
     } else if (aiAliveSpecies.length > 0) {
         // AI物种少于最大值，自动复制一个存活物种
         const randomSpecies = aiAliveSpecies[Math.floor(Math.random() * aiAliveSpecies.length)];
         
         // 创建新物种并复制性状
-        const newSpecies = createSpecies(`AI物种 ${ai.species.length + 1}`);
+        gameState.aiSpeciesCounter++;
+        const newSpecies = createSpecies('messages.aiSpecies', { count: gameState.aiSpeciesCounter });
         
         // 复制所有性状
         for (const traitType in randomSpecies.traits) {
@@ -2100,12 +2291,13 @@ function handleAIRevival(aiAliveSpecies) {
         }
         
         // 复制特殊性状（如果有）
-        if (randomSpecies.specialTraits.some(trait => trait)) {
-            newSpecies.specialTraits = { ...randomSpecies.specialTraits };
-        }
+        newSpecies.specialTraits = randomSpecies.specialTraits.map(trait => trait ? {...trait} : null);
         
         ai.species.push(newSpecies);
-        logMessage(`AI复制了物种 ${randomSpecies.name}，创建了新物种 ${newSpecies.name}`);
+        logMessage(formatMessage('messages.aiCopiedSpecies', { 
+            original: randomSpecies.name, 
+            new: newSpecies.name 
+        }));
     }
 }
 
@@ -2183,7 +2375,7 @@ function positionTooltip(tooltip, targetElement) {
 function testTooltip() {
     const testTooltip = document.createElement('div');
     testTooltip.className = 'trait-tooltip';
-    testTooltip.textContent = '测试tooltip - 如果你能看到这个，说明tooltip样式正常';
+    testTooltip.textContent = getText('debug.testTooltip');
     testTooltip.style.position = 'fixed';
     testTooltip.style.left = '50%';
     testTooltip.style.top = '50%';
@@ -2207,3 +2399,176 @@ function testTooltip() {
 
 // 在游戏开始时调用测试函数
 window.testTooltip = testTooltip;
+
+// 更新UI中的静态文本内容
+function updateUIText() {
+    // 更新标题
+    const gameTitle = document.getElementById('game-title');
+    const gameTitleEn = document.getElementById('game-title-en');
+    if (gameTitle) gameTitle.textContent = getText('gameTitle');
+    if (gameTitleEn) {
+        const enTitle = getText('gameTitleEn');
+        gameTitleEn.textContent = enTitle;
+        gameTitleEn.style.display = enTitle ? 'block' : 'none';
+    }
+    
+    // 更新页面标题
+    document.title = getText('gameTitle') + (getText('gameTitleEn') ? ' - ' + getText('gameTitleEn') : '');
+    
+    // 更新语言标签
+    const languageLabel = document.getElementById('language-label');
+    if (languageLabel) languageLabel.textContent = getText('selectLanguage') + ':';
+    
+    // 更新最大物种数量标签
+    const maxSpeciesLabel = document.getElementById('max-species-label');
+    if (maxSpeciesLabel) maxSpeciesLabel.textContent = getText('maxSpecies') + ':';
+    
+    // 更新最大物种数量选项
+    const maxSpeciesSelect = document.getElementById('max-species-select');
+    if (maxSpeciesSelect) {
+        const options = maxSpeciesSelect.querySelectorAll('option');
+        options.forEach(option => {
+            const value = option.value;
+            option.textContent = value + getText('speciesCount');
+        });
+    }
+    
+    // 更新开始游戏按钮
+    const startGameBtn = document.getElementById('start-game');
+    if (startGameBtn) startGameBtn.textContent = getText('startGame');
+    
+    // 更新游戏控制区域
+    const controlTitle = document.getElementById('control-title');
+    if (controlTitle) controlTitle.textContent = getText('gameControl');
+    
+    const roundLabel = document.getElementById('round-label');
+    if (roundLabel) roundLabel.textContent = getText('round');
+    
+    const nextPhaseBtn = document.getElementById('next-phase');
+    if (nextPhaseBtn) nextPhaseBtn.textContent = getText('nextPhase');
+    
+    const newGameBtn = document.getElementById('new-game');
+    if (newGameBtn) newGameBtn.textContent = getText('newGame');
+    
+    const duplicateBtn = document.getElementById('duplicate-species');
+    if (duplicateBtn) duplicateBtn.textContent = getText('actions.duplicateSpecies');
+    
+    // 更新游戏日志标题
+    const logTitle = document.getElementById('log-title');
+    if (logTitle) logTitle.textContent = getText('gameLog');
+    
+    // 更新环境区域
+    const environmentTitle = document.getElementById('environment-title');
+    if (environmentTitle) environmentTitle.textContent = getText('environment');
+    
+    const climateStateLabel = document.getElementById('climate-state-label');
+    if (climateStateLabel) climateStateLabel.textContent = getText('climateState');
+    
+    const temperatureChangeLabel = document.getElementById('temperature-change-label');
+    if (temperatureChangeLabel) temperatureChangeLabel.textContent = getText('temperatureChange');
+    
+    const environmentTypeLabel = document.getElementById('environment-type-label');
+    if (environmentTypeLabel) environmentTypeLabel.textContent = getText('environmentType');
+    
+    const environmentSeverityLabel = document.getElementById('environment-severity-label');
+    if (environmentSeverityLabel) environmentSeverityLabel.textContent = getText('severity');
+    
+    // 更新玩家区域
+    const playerSpeciesTitle = document.getElementById('player-species-title');
+    if (playerSpeciesTitle) playerSpeciesTitle.textContent = getText('playerSpecies');
+    
+    const playerHandTitle = document.getElementById('player-hand-title');
+    if (playerHandTitle) playerHandTitle.textContent = getText('playerHand');
+    
+    const actionPointsLabel = document.getElementById('action-points-label');
+    if (actionPointsLabel) actionPointsLabel.textContent = getText('actionPoints');
+    
+    // 更新AI标题
+    const aiTitle = document.getElementById('ai-title');
+    if (aiTitle) {
+        const handCount = document.getElementById('ai-hand-count');
+        if (handCount) {
+            const count = ai.hand ? ai.hand.length : 0;
+            handCount.textContent = `(${getText('handCount')}: ${count}${getText('cardUnit')})`;
+        }
+        aiTitle.firstChild.textContent = getText('ai') + ' ';
+    }
+    
+    // 更新操作面板
+    const selectActionTitle = document.getElementById('select-action-title');
+    if (selectActionTitle) selectActionTitle.textContent = getText('actions.selectAction');
+    
+    const addTraitBtn = document.getElementById('add-trait');
+    if (addTraitBtn) addTraitBtn.textContent = getText('actions.addTrait');
+    
+    const replaceTraitBtn = document.getElementById('replace-trait');
+    if (replaceTraitBtn) replaceTraitBtn.textContent = getText('actions.replaceTrait');
+    
+    const removeTraitBtn = document.getElementById('remove-trait');
+    if (removeTraitBtn) removeTraitBtn.textContent = getText('actions.removeTrait');
+    
+    const cancelActionBtn = document.getElementById('cancel-action');
+    if (cancelActionBtn) cancelActionBtn.textContent = getText('actions.cancel');
+    
+    // 更新确认面板
+    const confirmActionTitle = document.getElementById('confirm-action-title');
+    if (confirmActionTitle) confirmActionTitle.textContent = getText('actions.confirmAction');
+    
+    const confirmOperationText = document.getElementById('confirm-operation-text');
+    if (confirmOperationText) confirmOperationText.textContent = getText('actions.confirmOperation');
+    
+    const confirmTraitActionBtn = document.getElementById('confirm-trait-action');
+    if (confirmTraitActionBtn) confirmTraitActionBtn.textContent = getText('actions.confirm');
+    
+    const cancelTraitActionBtn = document.getElementById('cancel-trait-action');
+    if (cancelTraitActionBtn) cancelTraitActionBtn.textContent = getText('actions.cancel');
+    
+    // 更新复制确认面板
+    const duplicationConfirmTitle = document.getElementById('duplication-confirm-title');
+    if (duplicationConfirmTitle) duplicationConfirmTitle.textContent = getText('actions.confirmSkipDuplication');
+    
+    const confirmSkipBtn = document.getElementById('confirm-skip-duplication');
+    if (confirmSkipBtn) confirmSkipBtn.textContent = getText('actions.skipDuplication');
+    
+    const cancelSkipBtn = document.getElementById('cancel-skip-duplication');
+    if (cancelSkipBtn) cancelSkipBtn.textContent = getText('actions.continueDuplication');
+    
+    // 更新当前阶段显示
+    const currentPhase = document.getElementById('current-phase');
+    if (currentPhase && gameState.phaseNames && gameState.phaseNames[gameState.phase]) {
+        currentPhase.textContent = gameState.phaseNames[gameState.phase];
+    }
+    
+    // 更新灭绝标签文字
+    const extinctLabels = document.querySelectorAll('.extinct-label');
+    extinctLabels.forEach(label => {
+        label.textContent = getText('ui.extinct');
+    });
+}
+
+// 页面加载完成后的初始化
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化语言
+    initLanguage();
+    
+    // 设置语言选择器的当前值
+    const languageSelect = document.getElementById('language-select');
+    if (languageSelect) {
+        languageSelect.value = getCurrentLanguage();
+        
+        // 添加语言切换事件监听器
+        languageSelect.addEventListener('change', function() {
+            const selectedLang = this.value;
+            if (setLanguage(selectedLang)) {
+                updateUIText();
+                // 如果游戏已经开始，重新渲染UI
+                if (gameState.round > 1 || gameState.phase > 0) {
+                    updateUI();
+                }
+            }
+        });
+    }
+    
+    // 初始化UI文本
+    updateUIText();
+});
