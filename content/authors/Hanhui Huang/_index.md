@@ -112,11 +112,11 @@ social:
   # and uncomment the lines below.
   - icon: cv
     icon_pack: ai
-    link: uploads/CV_24-03-06.pdf
+    link: uploads/CV_simple - Hanhui Huang - 26-2-11.pdf
 
 # Highlight the author in author lists? (true/false)
 highlight_name: true
 ---
 
-I am Hanhui Huang.
+I am Hanhui Huang (黄汉晖). I am interested in the patterns and mechanisms of biodiversity change across time and space. I also enjoy developing methods for studying fossil biodiversity, especially on image-based automated morphological analysis.
 {style="text-align: justify;"}
