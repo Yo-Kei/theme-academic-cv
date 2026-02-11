@@ -13,6 +13,9 @@ authors:
 - Michael H. Stephenson
 - Yukun Shi
 - Xudong Hou
+author_notes:
+- "Equal contribution"
+- "Equal contribution"
 date: '2025-01-01'
 publishDate: '2025-11-25T12:53:43.646704Z'
 publication_types:
